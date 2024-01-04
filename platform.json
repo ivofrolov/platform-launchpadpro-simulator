@@ -1,0 +1,23 @@
+{
+    "name": "launchpadpro-simulator",
+    "title": "Launchpad Pro Simulator",
+    "description": "Native development platform intended to simulate open source firmware for the Launchpad Pro grid controller",
+    "homepage": "https://novationmusic.com/en/launch/launchpad-pro",
+    "license": "Apache-2.0",
+    "keywords": [
+        "dev-platform",
+        "native",
+        "desktop",
+        "simulator",
+        "Novation",
+        "Launchpad"
+    ],
+    "engines": {
+        "platformio": "^6"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ivofrolov/platform-launchpadpro-simulator.git"
+    },
+    "version": "0.0.1"
+}
