@@ -1,4 +1,6 @@
 from os.path import join
+
+from SCons.Errors import BuildError
 from SCons.Script import (
     COMMAND_LINE_TARGETS,
     AlwaysBuild,
@@ -7,7 +9,10 @@ from SCons.Script import (
     Flatten,
 )
 
+
 env = DefaultEnvironment()
+if env["PLATFORM"] != "darwin":
+    raise BuildError(errstr="Currently only MacOS is supported")
 
 PLATFORM_DIR = env.PioPlatform().get_dir()
 
@@ -30,6 +35,19 @@ if "compiledb" in COMMAND_LINE_TARGETS:
 
 # Restore C/C++ build flags as they were overridden by env.Tool
 env.Append(CFLAGS=backup_cflags, CXXFLAGS=backup_cxxflags)
+
+# Build rtmidi
+rtmidi_env = env.Clone(
+    RTMIDI_SRC=join(PLATFORM_DIR, "lib/rtmidi"),
+    LIBPREFIX="$BUILD_DIR/rtmidi/",
+    OBJPREFIX="$BUILD_DIR/rtmidi/",
+    CPPDEFINES=["__MACOSX_CORE__"],
+    CCFLAGS=["-O3", "-flto", "-std=c++11"],
+)
+rtmidi_target = rtmidi_env.StaticLibrary(
+    "librtmidi",
+    [join("$RTMIDI_SRC", filename) for filename in ("RtMidi.cpp", "rtmidi_c.cpp")],
+)
 
 # Build raylib
 raylib_env = env.Clone(
@@ -65,6 +83,7 @@ lppsim_env = env.Clone(
     CPPPATH=[
         join(PLATFORM_DIR, "include"),
         join(PLATFORM_DIR, raylib_env["RAYLIB_SRC_PATH"]),
+        join(PLATFORM_DIR, rtmidi_env["RTMIDI_SRC"]),
     ],
     CCFLAGS=["-O2", "-flto", "-Wall", "-Wextra", "-Wpedantic"],
 )
@@ -75,13 +94,16 @@ lppsim_target = lppsim_env.Object(
 # Target: Build executable program
 env.Append(
     PIOBUILDFILES=lppsim_target,
-    LIBS=[raylib_target],
+    LIBS=[raylib_target, "stdc++", rtmidi_target],
     LINKFLAGS=[
         "-flto",
         ("-framework", "OpenGL"),
         ("-framework", "Cocoa"),
         ("-framework", "IOKit"),
         ("-framework", "CoreVideo"),
+        ("-framework", "CoreMIDI"),
+        ("-framework", "CoreAudio"),
+        ("-framework", "CoreFoundation"),
     ],
     CPPPATH=[join(PLATFORM_DIR, "include")],
 )

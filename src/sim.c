@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dispatch/dispatch.h>
+#include "rtmidi_c.h"
 #include "Launchpad.h"
 #include "sim.h"
 
@@ -17,6 +18,10 @@ struct button {
 };
 
 button buttons[BUTTONS_NUMBER];
+
+dispatch_source_t timer;
+
+RtMidiOutPtr midiout;
 
 void hal_plot_led(u8 type, u8 index, u8 red, u8 green, u8 blue) {
   assert((type == TYPESETUP) || (type == TYPEPAD));
@@ -49,11 +54,15 @@ void hal_read_led(u8 type, u8 index, u8* red, u8* green, u8* blue) {
 }
 
 void hal_send_midi(u8 port, u8 status, u8 data1, u8 data2) {
-
+  assert(port == USBSTANDALONE || port == USBMIDI || port == DINMIDI);
+  const unsigned char message[3] = {status, data1, data2};
+  rtmidi_out_send_message(midiout, message, 3);
 }
 
 void hal_send_sysex(u8 port, const u8* data, u16 length) {
-
+  assert(port == USBSTANDALONE || port == USBMIDI || port == DINMIDI);
+  assert(length <= 320);
+  rtmidi_out_send_message(midiout, data, length);
 }
 
 void hal_read_flash(u32 offset, u8 *data, u32 length) {
@@ -77,20 +86,46 @@ u8 hal_read_layout_text() {
 // currently works on macos only, see
 // https://developer.apple.com/library/archive/documentation/General/Conceptual/ConcurrencyProgrammingGuide/Introduction/Introduction.html
 // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Blocks/Articles/00_Introduction.html
-void startTimer() {
+void initTimer() {
   dispatch_queue_t queue = dispatch_queue_create("com.example.lppsim.timer",
                                                  DISPATCH_QUEUE_SERIAL);
-  dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,
-                                                   0, 0, queue);
-  dispatch_source_set_event_handler(timer, ^{app_timer_event();});
+  timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+  dispatch_source_set_event_handler(timer, ^{
+    app_timer_event();
+  });
+  dispatch_source_set_cancel_handler(timer, ^{
+    dispatch_release(timer);
+    dispatch_release(queue);
+  });
   dispatch_time_t start = dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 100);
   dispatch_source_set_timer(timer, start, NSEC_PER_SEC / 1000, 0);
   dispatch_resume(timer);
 }
 
+void haltTimer() {
+  dispatch_source_cancel(timer);
+}
+
+void initMidi() {
+  midiout = rtmidi_out_create_default();
+  rtmidi_open_virtual_port(midiout, "Launchpad Open Simulator");
+}
+
+void haltMidi() {
+  rtmidi_close_port(midiout);
+  rtmidi_out_free(midiout);
+}
+
 void initSimulator() {
-  startTimer();
+  initMidi();
+  initTimer();
+
   app_init(adc_buffer);
+}
+
+void haltSimulator() {
+  haltTimer();
+  haltMidi();
 }
 
 inline u8 buttonType(size_t index) {

@@ -8,7 +8,7 @@ See the original [documentation](https://github.com/dvhdr/launchpad-pro) for API
 
 ## Getting Started
 
-Install development platform
+Install development platform.
 
     pio platform install https://github.com/ivofrolov/platform-launchpadpro-simulator.git
 
@@ -19,7 +19,7 @@ Create project using `pio init` and adjust platformio.ini like so.
 platform = launchpadpro-simulator
 ```
 
-You can combine both simulator and [hardware platform](https://github.com/ivofrolov/platform-launchpadpro) in one project using the environments.
+You can combine both simulator and [hardware platform](https://github.com/ivofrolov/platform-launchpadpro) in one project using Platformio environments.
 
 Compile firmware and launch simulator using `pio run -t exec`.
 

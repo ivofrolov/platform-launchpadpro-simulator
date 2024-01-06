@@ -29,10 +29,16 @@ void app_cable_event(u8 type, u8 value) {
 void app_surface_event(u8 type, u8 index, u8 value) {
   u8 col = index % 10;
   u8 row = 9 - index / 10;
+
+  // buttons
   if (col % 9 == 0 || row % 9 == 0) {
+    u8 status = (value == 0) ? NOTEOFF : NOTEON;
+    u8 note = 17 + (row * 4) + (col * 7);
+    hal_send_midi(USBMIDI, status, note, 127);
     return;
   }
 
+  // pads
   if (value == 0) {
     hal_plot_led(type, index, 0, 0, 0);
   } else {

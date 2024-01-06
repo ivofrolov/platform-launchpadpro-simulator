@@ -222,9 +222,10 @@ int main(void) {
 
     BeginDrawing();
     drawUI();
-    DrawFPS(0, 0);
     EndDrawing();
   }
+
+  haltSimulator();
 
   CloseWindow();
   return EXIT_SUCCESS;

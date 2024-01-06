@@ -7,6 +7,9 @@
 // triggers Launchpad init event
 void initSimulator();
 
+// frees resources
+void haltSimulator();
+
 // triggers Launchpad surface event
 void pressButton(size_t index);
 void releaseButton(size_t index);
